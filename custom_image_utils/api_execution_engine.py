@@ -32,7 +32,6 @@ from google.api_core.exceptions import (
 from google.api_core.retry import Retry
 from google.cloud import compute_v1
 from google.cloud import storage
-from google.cloud import dataproc_v1
 
 from custom_image_utils.execution_engine import ExecutionEngine
 from custom_image_utils.compute_operation_helper import ComputeOperationHelper
@@ -40,6 +39,7 @@ from custom_image_utils.compute_operation_helper import ComputeOperationHelper
 
 def _is_transient(e):
     from google.api_core.exceptions import BadRequest
+
     if isinstance(e, (NotFound, PermissionDenied, Conflict, BadRequest)):
         return False
     return isinstance(e, (GoogleAPIError, DeadlineExceeded))
@@ -565,16 +565,15 @@ class ApiExecutionEngine(ExecutionEngine):
                     key="dataproc_dataproc_version", value=args.dataproc_version
                 )
             )
-        # Process user customization metadata using CSV parser (Point 4)
+        # Process user customization metadata (Point 4)
         if args.metadata:
-            import csv
-
-            reader = csv.reader([args.metadata])
-            for row in reader:
-                for pair in row:
-                    if "=" in pair:
-                        k, v = pair.split("=", 1)
-                        metadata_items.append(compute_v1.Items(key=k, value=v))
+            # Match key=value where value can be double-quoted or unquoted
+            for match in re.finditer(
+                r'([^=,\s]+)=(?:"([^"]*)"|([^,]+))', args.metadata
+            ):
+                k = match.group(1)
+                v = match.group(2) if match.group(2) is not None else match.group(3)
+                metadata_items.append(compute_v1.Items(key=k, value=v))
 
         # Use startup-script-url pointing to GCS to avoid ~256KB metadata limits (Point 11)
         startup_script_url = (
@@ -671,7 +670,11 @@ class ApiExecutionEngine(ExecutionEngine):
 
         offset = 0
         start_time = time.time()
-        timeout_secs = getattr(args, "build_timeout_sec", 7200)  # Default to 2 hours or make configurable
+        timeout_secs = 7200
+        if hasattr(args, "build_timeout_sec") and isinstance(
+            args.build_timeout_sec, (int, float)
+        ):
+            timeout_secs = args.build_timeout_sec
         delay = 10
 
         with open(local_log_file, "w") as log_f:
@@ -882,8 +885,8 @@ class ApiExecutionEngine(ExecutionEngine):
         timestamp_string = img.creation_timestamp
 
         # RFC3339 timestamp parsing
-        creation_date = datetime.datetime.strptime(
-            timestamp_string[:-6], "%Y-%m-%dT%H:%M:%S.%f"
+        creation_date = datetime.datetime.fromisoformat(
+            timestamp_string.replace("Z", "+00:00")
         )
         expiration_date = creation_date + datetime.timedelta(days=365)
 

@@ -40,9 +40,7 @@ class CliExecutionEngine(ExecutionEngine):
             f"--project={args.project_id}",
         ]
         with open(os.devnull, "w") as devnull:
-            pipe = subprocess.Popen(
-                command, stdout=devnull, stderr=devnull
-            )
+            pipe = subprocess.Popen(command, stdout=devnull, stderr=devnull)
             pipe.wait()
             if pipe.returncode == 0:
                 raise RuntimeError("Image {} already exists.".format(args.image_name))
