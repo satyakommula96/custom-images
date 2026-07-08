@@ -239,9 +239,9 @@ class TestApiExecutionEngine(unittest.TestCase):
         instance_resource = call_args.kwargs["instance_resource"]
         metadata_items = instance_resource.metadata.items
 
-        keys = [item.key for item in metadata_items]
-        self.assertIn("key1", keys)
-        self.assertIn("key2", keys)
+        metadata_dict = {item.key: item.value for item in metadata_items}
+        self.assertEqual(metadata_dict.get("key1"), "val1,val2")
+        self.assertEqual(metadata_dict.get("key2"), "val3")
 
     def test_dataproc_version_parsing_and_sorting(self):
         from custom_image_utils.api_execution_engine import _parse_dataproc_version

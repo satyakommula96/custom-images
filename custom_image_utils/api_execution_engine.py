@@ -39,7 +39,8 @@ from custom_image_utils.compute_operation_helper import ComputeOperationHelper
 
 
 def _is_transient(e):
-    if isinstance(e, (NotFound, PermissionDenied, Conflict)):
+    from google.api_core.exceptions import BadRequest
+    if isinstance(e, (NotFound, PermissionDenied, Conflict, BadRequest)):
         return False
     return isinstance(e, (GoogleAPIError, DeadlineExceeded))
 
@@ -113,7 +114,6 @@ class ApiExecutionEngine(ExecutionEngine):
         self.disks_client = compute_v1.DisksClient()
         self.instances_client = compute_v1.InstancesClient()
         self.storage_client = storage.Client()
-        self.dataproc_client = dataproc_v1.WorkflowTemplateServiceClient()
 
     def _get_default_project(self):
         """Gets default project ID from authenticated credentials."""
@@ -642,7 +642,7 @@ class ApiExecutionEngine(ExecutionEngine):
             ]
             # Required scheduling for GPU instances
             instance_resource.scheduling = compute_v1.Scheduling(
-                on_host_maintenance=compute_v1.Scheduling.OnHostMaintenance.TERMINATE
+                on_host_maintenance="TERMINATE"
             )
 
         try:
@@ -671,7 +671,7 @@ class ApiExecutionEngine(ExecutionEngine):
 
         offset = 0
         start_time = time.time()
-        timeout_secs = 3600  # 1 hour max build timeout
+        timeout_secs = getattr(args, "build_timeout_sec", 7200)  # Default to 2 hours or make configurable
         delay = 10
 
         with open(local_log_file, "w") as log_f:

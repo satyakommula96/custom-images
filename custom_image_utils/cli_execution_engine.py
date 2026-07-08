@@ -31,12 +31,17 @@ class CliExecutionEngine(ExecutionEngine):
 
     def perform_sanity_checks(self, args):
         # Check the image doesn't already exist using gcloud compute images describe.
-        command = "gcloud compute images describe {} --project={}".format(
-            args.image_name, args.project_id
-        )
+        command = [
+            "gcloud",
+            "compute",
+            "images",
+            "describe",
+            args.image_name,
+            f"--project={args.project_id}",
+        ]
         with open(os.devnull, "w") as devnull:
             pipe = subprocess.Popen(
-                [command], stdout=devnull, stderr=devnull, shell=True
+                command, stdout=devnull, stderr=devnull
             )
             pipe.wait()
             if pipe.returncode == 0:
