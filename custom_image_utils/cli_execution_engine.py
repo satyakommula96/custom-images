@@ -39,11 +39,9 @@ class CliExecutionEngine(ExecutionEngine):
             args.image_name,
             f"--project={args.project_id}",
         ]
-        with open(os.devnull, "w") as devnull:
-            pipe = subprocess.Popen(command, stdout=devnull, stderr=devnull)
-            pipe.wait()
-            if pipe.returncode == 0:
-                raise RuntimeError("Image {} already exists.".format(args.image_name))
+        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if result.returncode == 0:
+            raise RuntimeError("Image {} already exists.".format(args.image_name))
 
     def create_image(self, args):
         shell_image_creator.create(args)

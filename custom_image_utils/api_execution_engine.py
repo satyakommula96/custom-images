@@ -136,14 +136,14 @@ class ApiExecutionEngine(ExecutionEngine):
         # Validate and format Zone & Region (Point 12)
         if not args.zone:
             raise RuntimeError("Zone must be specified.")
-        zone_pattern = re.compile(r"^[a-z]+-[a-z]+\d+-[a-z]$")
+        zone_pattern = re.compile(r"^[a-z0-9-]+-[a-z]$")
         if not zone_pattern.match(args.zone):
             raise RuntimeError(
                 f"Invalid zone format: {args.zone}. Expected format like us-central1-a"
             )
 
         region_from_zone = "-".join(args.zone.split("-")[:-1])
-        region_pattern = re.compile(r"^[a-z]+-[a-z]+\d+$")
+        region_pattern = re.compile(r"^[a-z0-9-]+$")
         if not region_pattern.match(region_from_zone):
             raise RuntimeError(f"Extracted region is invalid: {region_from_zone}")
 
@@ -157,7 +157,7 @@ class ApiExecutionEngine(ExecutionEngine):
             img = self.images_client.get(
                 project=project, image=image_name, retry=_DEFAULT_RETRY
             )
-            args.dataproc_version = img.labels.get("goog-dataproc-version", "")
+            args.dataproc_version = (img.labels or {}).get("goog-dataproc-version", "")
 
         elif args.dataproc_version:
             # Find base image path by dataproc version
@@ -807,7 +807,7 @@ class ApiExecutionEngine(ExecutionEngine):
             except Exception as e:
                 _LOG.warning("Failed to delete VM instance %s: %s", instance_name, e)
 
-        if state.disk_created:
+        if state.disk_created and not state.vm_created:
             try:
                 _LOG.info("Cleaning up boot disk %s...", disk_name)
                 op = self.disks_client.delete(
@@ -832,7 +832,7 @@ class ApiExecutionEngine(ExecutionEngine):
                 for name in files:
                     path = os.path.join(root, name)
                     rel = os.path.relpath(path, args.log_dir)
-                    blob_path = f"{args.run_id}/logs/{rel}"
+                    blob_path = f"{args.gcs_base_path}/logs/{rel}"
                     blob = bucket.blob(blob_path)
                     blob.upload_from_filename(path, retry=_DEFAULT_RETRY)
         except (
