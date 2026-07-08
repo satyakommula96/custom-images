@@ -18,197 +18,245 @@ from custom_image_utils import args_parser
 
 
 class TestArgsParser(unittest.TestCase):
+    def test_missing_required_args(self):
+        """Verifies it fails if missing required args."""
+        with self.assertRaises(SystemExit):
+            args_parser.parse_args([])
 
-  def test_missing_required_args(self):
-    """Verifies it fails if missing required args."""
-    with self.assertRaises(SystemExit) as e:
-      args_parser.parse_args([])
+    def test_minimal_required_args(self):
+        """Verifies it succeeds if all required args are present."""
+        customization_script = "/tmp/my-script.sh"
+        gcs_bucket = "gs://my-bucket"
+        image_name = "my-image"
+        zone = "us-west1-a"
 
-  def test_minimal_required_args(self):
-    """Verifies it succeeds if all required args are present."""
-    customization_script = '/tmp/my-script.sh'
-    gcs_bucket = 'gs://my-bucket'
-    image_name = 'my-image'
-    zone = 'us-west1-a'
+        args = args_parser.parse_args(
+            [
+                "--image-name",
+                image_name,
+                "--customization-script",
+                customization_script,
+                "--zone",
+                zone,
+                "--gcs-bucket",
+                gcs_bucket,
+            ]
+        )
 
-    args = args_parser.parse_args([
-        '--image-name', image_name,
-        '--customization-script', customization_script,
-        '--zone', zone,
-        '--gcs-bucket', gcs_bucket])
+        expected_result = self._make_expected_result(
+            accelerator=None,
+            base_image_family=None,
+            base_image_uri=None,
+            customization_script=customization_script,
+            dataproc_version=None,
+            disk_size=30,
+            dry_run=False,
+            extra_sources={},
+            family="dataproc-custom-image",
+            gcs_bucket=gcs_bucket,
+            image_name=image_name,
+            machine_type="n1-standard-1",
+            network="",
+            no_external_ip=False,
+            no_smoke_test=False,
+            oauth=None,
+            project_id=None,
+            service_account="default",
+            shutdown_instance_timer_sec=300,
+            storage_location=None,
+            subnetwork="",
+            zone=zone,
+            metadata=None,
+            trusted_cert="tls/db.der",
+            optional_components=None,
+        )
+        self.assertEqual(args, expected_result)
 
-    expected_result = self._make_expected_result(
-        accelerator=None,
-        base_image_family=None,
-        base_image_uri=None,
-        customization_script=customization_script,
-        dataproc_version=None,
-        disk_size=30,
-        dry_run=False,
-        extra_sources={},
-        family='dataproc-custom-image',
-        gcs_bucket=gcs_bucket,
-        image_name=image_name,
-        machine_type='n1-standard-1',
-        network='',
-        no_external_ip=False,
-        no_smoke_test=False,
-        oauth=None,
-        project_id=None,
-        service_account='default',
-        shutdown_instance_timer_sec=300,
-        storage_location=None,
-        subnetwork='',
-        zone=zone,
-        metadata=None,
-        trusted_cert='tls/db.der',
-        optional_components=None
-    )
-    self.assertEqual(args, expected_result)
+    def test_optional_args(self):
+        """Verifies it succeeds with optional arguments specified."""
+        accelerator = "type=nvidia-tesla-v100,count=2"
+        customization_script = "/tmp/my-script.sh"
+        dataproc_version = "1.4.5-debian9"
+        disk_size = 40
+        dry_run = True
+        family = "debian9"
+        gcs_bucket = "gs://my-bucket"
+        image_name = "my-image"
+        machine_type = "n1-standard-4"
+        network = "my-network"
+        no_external_ip = True
+        no_smoke_test = True
+        oauth = "xyz"
+        project_id = "my-project"
+        service_account = "my-service-account"
+        shutdown_instance_timer_sec = 567
+        storage_location = "us-east1"
+        subnetwork = "my-subnetwork"
+        zone = "us-west1-a"
+        metadata = "key1=value1,key2=value2"
 
-  def test_optional_args(self):
-    """Verifies it succeeds with optional arguments specified."""
-    accelerator = 'type=nvidia-tesla-v100,count=2'
-    customization_script = '/tmp/my-script.sh'
-    dataproc_version = '1.4.5-debian9'
-    disk_size = 40
-    dry_run = True
-    family = 'debian9'
-    gcs_bucket = 'gs://my-bucket'
-    image_name = 'my-image'
-    machine_type = 'n1-standard-4'
-    network = 'my-network'
-    no_external_ip = True
-    no_smoke_test = True
-    oauth = 'xyz'
-    project_id = 'my-project'
-    service_account = "my-service-account"
-    shutdown_instance_timer_sec = 567
-    storage_location = 'us-east1'
-    subnetwork = 'my-subnetwork'
-    zone = 'us-west1-a'
-    metadata = 'key1=value1,key2=value2'
+        args = args_parser.parse_args(
+            [
+                "--accelerator",
+                str(accelerator),
+                "--customization-script",
+                customization_script,
+                "--dataproc-version",
+                dataproc_version,
+                "--disk-size",
+                str(disk_size),
+                "--dry-run",
+                "--family",
+                family,
+                "--gcs-bucket",
+                gcs_bucket,
+                "--image-name",
+                image_name,
+                "--machine-type",
+                machine_type,
+                "--network",
+                network,
+                "--no-external-ip",
+                "--no-smoke-test",
+                "--oauth",
+                oauth,
+                "--project-id",
+                project_id,
+                "--service-account",
+                service_account,
+                "--shutdown-instance-timer-sec",
+                str(shutdown_instance_timer_sec),
+                "--storage-location",
+                str(storage_location),
+                "--subnetwork",
+                subnetwork,
+                "--zone",
+                zone,
+                "--metadata",
+                metadata,
+            ]
+        )
 
-    args = args_parser.parse_args([
-        '--accelerator', str(accelerator),
-        '--customization-script', customization_script,
-        '--dataproc-version', dataproc_version,
-        '--disk-size', str(disk_size),
-        '--dry-run',
-        '--family', family,
-        '--gcs-bucket', gcs_bucket,
-        '--image-name', image_name,
-        '--machine-type', machine_type,
-        '--network', network,
-        '--no-external-ip',
-        '--no-smoke-test',
-        '--oauth', oauth,
-        '--project-id', project_id,
-        '--service-account', service_account,
-        '--shutdown-instance-timer-sec', str(shutdown_instance_timer_sec),
-        '--storage-location', str(storage_location),
-        '--subnetwork', subnetwork,
-        '--zone', zone,
-        '--metadata', metadata,
-    ])
+        expected_result = self._make_expected_result(
+            accelerator=accelerator,
+            base_image_family=None,
+            base_image_uri=None,
+            customization_script=customization_script,
+            dataproc_version=dataproc_version,
+            disk_size=disk_size,
+            dry_run=dry_run,
+            extra_sources={},
+            family=family,
+            gcs_bucket=gcs_bucket,
+            image_name=image_name,
+            machine_type=machine_type,
+            metadata=metadata,
+            network=network,
+            no_external_ip=no_external_ip,
+            no_smoke_test=no_smoke_test,
+            oauth=oauth,
+            project_id=project_id,
+            service_account=service_account,
+            shutdown_instance_timer_sec=shutdown_instance_timer_sec,
+            storage_location=storage_location,
+            subnetwork=subnetwork,
+            zone=zone,
+            trusted_cert="tls/db.der",
+            optional_components=None,
+        )
+        self.assertEqual(args, expected_result)
 
-    expected_result = self._make_expected_result(
-        accelerator=accelerator,
-        base_image_family=None,        
-        base_image_uri=None,
-        customization_script=customization_script,
-        dataproc_version=dataproc_version,
-        disk_size=disk_size,
-        dry_run=dry_run,
-        extra_sources={},
-        family=family,
-        gcs_bucket=gcs_bucket,
-        image_name=image_name,
-        machine_type=machine_type,
-        metadata=metadata,
-        network=network,
-        no_external_ip=no_external_ip,
-        no_smoke_test=no_smoke_test,
-        oauth=oauth,
-        project_id=project_id,
-        service_account=service_account,
-        shutdown_instance_timer_sec=shutdown_instance_timer_sec,
-        storage_location=storage_location,
-        subnetwork=subnetwork,
-        zone=zone,
-        trusted_cert='tls/db.der',
-        optional_components=None
-    )
-    self.assertEqual(args, expected_result)
+    def test_inferred_subminor_versions(self):
+        """Verifies it succeeds if inferred/unspecified subminor version is correctly formatted."""
+        customization_script = "/tmp/my-script.sh"
+        gcs_bucket = "gs://my-bucket"
+        image_name = "my-image"
+        zone = "us-west1-a"
 
-  def test_inferred_subminor_versions(self):
-    """Verifies it succeeds if inferred/unspecified subminor version is correctly formatted."""
-    customization_script = '/tmp/my-script.sh'
-    gcs_bucket = 'gs://my-bucket'
-    image_name = 'my-image'
-    zone = 'us-west1-a'
+        def _args_parsed(dataproc_version):
+            return args_parser.parse_args(
+                [
+                    "--image-name",
+                    image_name,
+                    "--dataproc-version",
+                    dataproc_version,
+                    "--customization-script",
+                    customization_script,
+                    "--zone",
+                    zone,
+                    "--gcs-bucket",
+                    gcs_bucket,
+                ]
+            )
 
-    def _args_parsed(dataproc_version):
-      return args_parser.parse_args([
-          '--image-name', image_name,
-          '--dataproc-version', dataproc_version,
-          '--customization-script', customization_script,
-          '--zone', zone,
-          '--gcs-bucket', gcs_bucket])
+        def _expected_result(dataproc_version):
+            return self._make_expected_result(
+                accelerator=None,
+                base_image_family=None,
+                base_image_uri=None,
+                customization_script=customization_script,
+                dataproc_version=dataproc_version,
+                disk_size=30,
+                dry_run=False,
+                extra_sources={},
+                family="dataproc-custom-image",
+                gcs_bucket=gcs_bucket,
+                image_name=image_name,
+                machine_type="n1-standard-1",
+                network="",
+                no_external_ip=False,
+                no_smoke_test=False,
+                oauth=None,
+                project_id=None,
+                service_account="default",
+                shutdown_instance_timer_sec=300,
+                storage_location=None,
+                subnetwork="",
+                zone=zone,
+                metadata=None,
+                trusted_cert="tls/db.der",
+                optional_components=None,
+            )
 
-    def _expected_result(dataproc_version):
-       return self._make_expected_result(
-          accelerator=None,
-          base_image_family=None,
-          base_image_uri=None,
-          customization_script=customization_script,
-          dataproc_version=dataproc_version,
-          disk_size=30,
-          dry_run=False,
-          extra_sources={},
-          family='dataproc-custom-image',
-          gcs_bucket=gcs_bucket,
-          image_name=image_name,
-          machine_type='n1-standard-1',
-          network='',
-          no_external_ip=False,
-          no_smoke_test=False,
-          oauth=None,
-          project_id=None,
-          service_account='default',
-          shutdown_instance_timer_sec=300,
-          storage_location=None,
-          subnetwork='',
-          zone=zone,
-          metadata=None,
-          trusted_cert='tls/db.der',
-          optional_components=None
-    )
+        def _args_exception(dataproc_version):
+            # Checks that inputs produce an exception
+            try:
+                _args_parsed(dataproc_version)
+            except SystemExit as e:
+                self.assertEqual(e.__class__, SystemExit)
+            else:
+                raise ValueError("Exception not raised")
 
-    def _args_exception(dataproc_version):
-      # Checks that inputs produce an exception
-      try:
-        _args_parsed(dataproc_version)
-      except SystemExit as e:
-        self.assertEqual(e.__class__, SystemExit)
-      else:
-        raise ValueError("Exception not raised")
+        self.assertEqual(_args_parsed("1.5-debian10"), _expected_result("1.5-debian10"))
+        self.assertEqual(_args_parsed("1.3-ubuntu18"), _expected_result("1.3-ubuntu18"))
+        self.assertEqual(_args_parsed("1.3-rocky8"), _expected_result("1.3-rocky8"))
+        self.assertEqual(
+            _args_parsed("2.3-ml-ubuntu22"), _expected_result("2.3-ml-ubuntu22")
+        )
 
-    self.assertEqual(_args_parsed('1.5-debian10'), _expected_result('1.5-debian10'))
-    self.assertEqual(_args_parsed('1.3-ubuntu18'), _expected_result('1.3-ubuntu18'))
-    self.assertEqual(_args_parsed('1.3-rocky8'), _expected_result('1.3-rocky8'))
-    self.assertEqual(_args_parsed('2.3-ml-ubuntu22'), _expected_result('2.3-ml-ubuntu22'))
+        invalid_dataproc_versions = [
+            "*.*.*-debian10",
+            "1.**.*-debian10",
+            "1.*.8*-debian10",
+            "11.*.*-debian",
+            "1.*-debian10",
+            "1.5.*-debian10",
+            "1.5.-debian10",
+            "1.*.*-debian10",
+        ]
+        try:
+            for version in invalid_dataproc_versions:
+                _args_exception(version)
+        except ValueError as e:
+            raise e
 
-    invalid_dataproc_versions = ['*.*.*-debian10', '1.**.*-debian10', '1.*.8*-debian10', '11.*.*-debian', 
-      '1.*-debian10', '1.5.*-debian10', '1.5.-debian10', '1.*.*-debian10']
-    try:
-      for version in invalid_dataproc_versions:
-        _args_exception(version)
-    except ValueError as e:
-      raise e
+    def _make_expected_result(self, **kwargs):
+        if "execution_engine" not in kwargs:
+            kwargs["execution_engine"] = "cli"
+        if "universe_domain" not in kwargs:
+            kwargs["universe_domain"] = "googleapis.com"
+        return argparse.Namespace(**kwargs)
 
-  def _make_expected_result(self, **kwargs):
-    return argparse.Namespace(**kwargs)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

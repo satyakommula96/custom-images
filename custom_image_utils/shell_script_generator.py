@@ -21,7 +21,6 @@ import re
 import sys
 
 
-
 _template = """#!/usr/bin/env bash
 
 # Script for creating Dataproc custom image.
@@ -282,151 +281,192 @@ prepare
 main "$@" 2>&1 | tee {log_dir}/workflow.log
 """
 
+
 class Generator:
-  """Shell script based image creation workflow generator."""
+    """Shell script based image creation workflow generator."""
 
-  def _init_args(self, args):
-    self.args = args
-    if "run_id" not in self.args:
-      self.args["run_id"] = "custom-image-{image_name}-{timestamp}".format(
-          timestamp=datetime.now().strftime("%Y%m%d-%H%M%S"), **self.args)
-    self.args["bucket_name"] = self.args["gcs_bucket"].replace("gs://", "")
-    self.args["custom_sources_path"] = "gs://{bucket_name}/{run_id}/sources".format(**self.args)
+    def _init_args(self, args):
+        self.args = args
+        self.args.setdefault("optional_components", None)
+        self.args.setdefault("dataproc_version", None)
+        self.args.setdefault("universe_domain", "googleapis.com")
+        self.args.setdefault("trusted_cert", "")
+        if "run_id" not in self.args:
+            self.args["run_id"] = "custom-image-{image_name}-{timestamp}".format(
+                timestamp=datetime.now().strftime("%Y%m%d-%H%M%S"), **self.args
+            )
+        self.args["bucket_name"] = self.args["gcs_bucket"].replace("gs://", "")
+        self.args["custom_sources_path"] = "gs://{bucket_name}/{run_id}/sources".format(
+            **self.args
+        )
 
-    all_sources = {
-        "run.sh": "startup_script/run.sh",
-        "init_actions.sh": self.args["customization_script"],
-        "gce-proxy-setup.sh": "startup_script/gce-proxy-setup.sh"
-    }
-    all_sources.update(self.args["extra_sources"])
+        all_sources = {
+            "run.sh": "startup_script/run.sh",
+            "init_actions.sh": self.args["customization_script"],
+            "gce-proxy-setup.sh": "startup_script/gce-proxy-setup.sh",
+        }
+        all_sources.update(self.args["extra_sources"])
 
-    sources_map_items = tuple(enumerate(all_sources.items()))
-    self.args["sources_map_k"] = " ".join([
-        "[{}]='{}'".format(i, kv[0].replace("'", "'\\''")) for i, kv in sources_map_items])
-    self.args["sources_map_v"] = " ".join([
-        "[{}]='{}'".format(i, kv[1].replace("'", "'\\''")) for i, kv in sources_map_items])
+        sources_map_items = tuple(enumerate(all_sources.items()))
+        self.args["sources_map_k"] = " ".join(
+            [
+                "[{}]='{}'".format(i, kv[0].replace("'", "'\\''"))
+                for i, kv in sources_map_items
+            ]
+        )
+        self.args["sources_map_v"] = " ".join(
+            [
+                "[{}]='{}'".format(i, kv[1].replace("'", "'\\''"))
+                for i, kv in sources_map_items
+            ]
+        )
 
-    self.args["log_dir"] = "/tmp/{run_id}/logs".format(**self.args)
-    self.args["gcs_log_dir"] = "gs://{bucket_name}/{run_id}/logs".format(
-      **self.args)
-    if self.args["subnetwork"]:
-      self.args["subnetwork_flag"] = "--subnet={subnetwork}".format(**self.args)
-      self.args["network_flag"] = ""
-    elif self.args["network"]:
-      self.args["network_flag"] = "--network={network}".format(**self.args)
-      self.args["subnetwork_flag"] = ""
-    if self.args["service_account"]:
-      self.args[
-        "service_account_flag"] = "--service-account={service_account}".format(
-        **self.args)
-    self.args["no_external_ip_flag"] = "--no-address" if self.args[
-      "no_external_ip"] else ""
-    self.args[
-      "accelerator_flag"] = "--accelerator={accelerator} --maintenance-policy terminate".format(
-        **self.args) if self.args["accelerator"] else ""
-    self.args[
-      "storage_location_flag"] = "--storage-location={storage_location}".format(
-        **self.args) if self.args["storage_location"] else ""
-    metadata_flag_template = (
-        "--metadata=shutdown-timer-in-sec={shutdown_timer_in_sec},"
-        "custom-sources-path={custom_sources_path},"
-        "universe-domain={universe_domain}"
-    )
-    if self.args["zone"]:
-      region = "-".join(self.args["zone"].split("-")[:-1])
-      metadata_flag_template += ',dataproc-region="{}"'.format(region)
-    if self.args["optional_components"]:
-      optional_components = self.args["optional_components"].split(',')
-      # convert to component names used inside image and join to set as metadata value
-      optional_image_components = '.'.join(self._get_optional_to_image_components(optional_components))
-      metadata_flag_template += ',optional-components="{}"'.format(optional_image_components)
+        self.args["log_dir"] = "/tmp/{run_id}/logs".format(**self.args)
+        self.args["gcs_log_dir"] = "gs://{bucket_name}/{run_id}/logs".format(
+            **self.args
+        )
+        if self.args["subnetwork"]:
+            self.args["subnetwork_flag"] = "--subnet={subnetwork}".format(**self.args)
+            self.args["network_flag"] = ""
+        elif self.args["network"]:
+            self.args["network_flag"] = "--network={network}".format(**self.args)
+            self.args["subnetwork_flag"] = ""
+        if self.args["service_account"]:
+            self.args["service_account_flag"] = (
+                "--service-account={service_account}".format(**self.args)
+            )
+        self.args["no_external_ip_flag"] = (
+            "--no-address" if self.args["no_external_ip"] else ""
+        )
+        self.args["accelerator_flag"] = (
+            "--accelerator={accelerator} --maintenance-policy terminate".format(
+                **self.args
+            )
+            if self.args["accelerator"]
+            else ""
+        )
+        self.args["storage_location_flag"] = (
+            "--storage-location={storage_location}".format(**self.args)
+            if self.args["storage_location"]
+            else ""
+        )
+        metadata_flag_template = (
+            "--metadata=shutdown-timer-in-sec={shutdown_timer_in_sec},"
+            "custom-sources-path={custom_sources_path},"
+            "universe-domain={universe_domain}"
+        )
+        if self.args["zone"]:
+            region = "-".join(self.args["zone"].split("-")[:-1])
+            metadata_flag_template += ',dataproc-region="{}"'.format(region)
+        if self.args["optional_components"]:
+            optional_components = self.args["optional_components"].split(",")
+            # convert to component names used inside image and join to set as metadata value
+            optional_image_components = ".".join(
+                self._get_optional_to_image_components(optional_components)
+            )
+            metadata_flag_template += ',optional-components="{}"'.format(
+                optional_image_components
+            )
 
-    if self.args["dataproc_version"]:
-      dataproc_version = self.args["dataproc_version"]
-      metadata_flag_template += ',dataproc_dataproc_version="{}"'.format(dataproc_version)
-    self.args["create_key_pair_script"] = "examples/secure-boot/create-key-pair.sh"
-    if self.args.get("trusted_cert"):
-      import subprocess
-      import re
+        if self.args["dataproc_version"]:
+            dataproc_version = self.args["dataproc_version"]
+            metadata_flag_template += ',dataproc_dataproc_version="{}"'.format(
+                dataproc_version
+            )
+        self.args["create_key_pair_script"] = "examples/secure-boot/create-key-pair.sh"
+        if self.args.get("trusted_cert"):
+            import subprocess
 
-      # Resolve the path to create-key-pair.sh
-      script_path = "examples/secure-boot/create-key-pair.sh"
-      resolved_path = None
+            # Resolve the path to create-key-pair.sh
+            script_path = "examples/secure-boot/create-key-pair.sh"
+            resolved_path = None
 
-      # Candidate 1: Relative to CWD
-      if os.path.exists(script_path):
-        resolved_path = script_path
-      # Candidate 2: Relative to this file
-      else:
-        relative_to_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", script_path))
-        if os.path.exists(relative_to_file):
-          resolved_path = relative_to_file
-        # Candidate 3: Relative to sys.argv[0]
-        elif sys.argv:
-          relative_to_argv = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), script_path))
-          if os.path.exists(relative_to_argv):
-            resolved_path = relative_to_argv
+            # Candidate 1: Relative to CWD
+            if os.path.exists(script_path):
+                resolved_path = script_path
+            # Candidate 2: Relative to this file
+            else:
+                relative_to_file = os.path.abspath(
+                    os.path.join(os.path.dirname(__file__), "..", script_path)
+                )
+                if os.path.exists(relative_to_file):
+                    resolved_path = relative_to_file
+                # Candidate 3: Relative to sys.argv[0]
+                elif sys.argv:
+                    relative_to_argv = os.path.abspath(
+                        os.path.join(os.path.dirname(sys.argv[0]), script_path)
+                    )
+                    if os.path.exists(relative_to_argv):
+                        resolved_path = relative_to_argv
 
-      if resolved_path:
-        print(f"INFO: Resolved create-key-pair.sh to: {resolved_path}")
-        self.args["create_key_pair_script"] = resolved_path
-      else:
-        print("WARNING: Could not resolve path to create-key-pair.sh, falling back to default.")
-        resolved_path = script_path
+            if resolved_path:
+                print(f"INFO: Resolved create-key-pair.sh to: {resolved_path}")
+                self.args["create_key_pair_script"] = resolved_path
+            else:
+                print(
+                    "WARNING: Could not resolve path to create-key-pair.sh, falling back to default."
+                )
+                resolved_path = script_path
 
-      try:
-        script_output = subprocess.check_output(['bash', resolved_path], text=True)
-        secret_vars = {}
-        for line in script_output.splitlines():
-          if '=' in line:
-            key, value = line.split('=', 1)
-            secret_vars[key] = value.strip().strip("'")
-        self.args.update(secret_vars)
-        metadata_flag_template += (',public_secret_name={public_secret_name},'
-                                 'private_secret_name={private_secret_name},'
-                                 'secret_project={secret_project},'
-                                 'secret_version={secret_version}')
-      except subprocess.CalledProcessError as e:
-        print(f"ERROR: Failed to source secret names from create-key-pair.sh: {e}")
-        # Handle error appropriately, maybe exit or raise
-      except FileNotFoundError:
-        print(f"ERROR: {resolved_path} not found")
-        # Handle error
-    self.args["shielded_secure_boot_flag"] = ""
-    if self.args["metadata"]:
-      metadata_flag_template += ",{metadata}"
-    self.args["metadata_flag"] = metadata_flag_template.format(**self.args)
+            try:
+                script_output = subprocess.check_output(
+                    ["bash", resolved_path], text=True
+                )
+                secret_vars = {}
+                for line in script_output.splitlines():
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        secret_vars[key] = value.strip().strip("'")
+                self.args.update(secret_vars)
+                metadata_flag_template += (
+                    ",public_secret_name={public_secret_name},"
+                    "private_secret_name={private_secret_name},"
+                    "secret_project={secret_project},"
+                    "secret_version={secret_version}"
+                )
+            except subprocess.CalledProcessError as e:
+                print(
+                    f"ERROR: Failed to source secret names from create-key-pair.sh: {e}"
+                )
+                # Handle error appropriately, maybe exit or raise
+            except FileNotFoundError:
+                print(f"ERROR: {resolved_path} not found")
+                # Handle error
+        self.args["shielded_secure_boot_flag"] = ""
+        if self.args["metadata"]:
+            metadata_flag_template += ",{metadata}"
+        self.args["metadata_flag"] = metadata_flag_template.format(**self.args)
 
-  def _get_optional_to_image_components(self, optional_components):
-    """Get the equivalent component names in the image for user provided optional components."""
-    # Add new component here, if component name inside image scripts is different.
-    optional_to_image_component_map = {
-      "DOCKER": "DOCKER-CE",
-      "HIVE_WEBHCAT": "HIVE-WEBHCAT-SERVER",
-      "SOLR": "SOLR-SERVER",
-    }
-    optional_image_components = []
-    for component in optional_components:
-      image_component = optional_to_image_component_map.get(component, component)
-      optional_image_components.append(image_component)
+    def _get_optional_to_image_components(self, optional_components):
+        """Get the equivalent component names in the image for user provided optional components."""
+        # Add new component here, if component name inside image scripts is different.
+        optional_to_image_component_map = {
+            "DOCKER": "DOCKER-CE",
+            "HIVE_WEBHCAT": "HIVE-WEBHCAT-SERVER",
+            "SOLR": "SOLR-SERVER",
+        }
+        optional_image_components = []
+        for component in optional_components:
+            image_component = optional_to_image_component_map.get(component, component)
+            optional_image_components.append(image_component)
 
-    return optional_image_components
+        return optional_image_components
 
-  def generate(self, args):
-    self._init_args(args)
+    def generate(self, args):
+        self._init_args(args)
 
-    dataproc_version = self.args.get("dataproc_version", "")
-    major_minor = "0.0"
-    if dataproc_version:
-      match = re.match(r"(\d+)\.(\d+)", dataproc_version)
-      if match:
-        major_minor = "{}.{}".format(match.group(1), match.group(2))
+        dataproc_version = self.args.get("dataproc_version", "")
+        major_minor = "0.0"
+        if dataproc_version:
+            match = re.match(r"(\d+)\.(\d+)", dataproc_version)
+            if match:
+                major_minor = "{}.{}".format(match.group(1), match.group(2))
 
-    trusted_cert = self.args.get("trusted_cert")
-    shielded_secure_boot_flag = ""
-    if float(major_minor) >= 2.2:
-      if trusted_cert != "":
-        shielded_secure_boot_flag = "--shielded-secure-boot"
-    self.args["shielded_secure_boot_flag"] = shielded_secure_boot_flag
+        trusted_cert = self.args.get("trusted_cert")
+        shielded_secure_boot_flag = ""
+        if float(major_minor) >= 2.2:
+            if trusted_cert != "":
+                shielded_secure_boot_flag = "--shielded-secure-boot"
+        self.args["shielded_secure_boot_flag"] = shielded_secure_boot_flag
 
-    return _template.format(**args)
+        return _template.format(**args)
