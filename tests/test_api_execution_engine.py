@@ -43,12 +43,6 @@ class TestApiExecutionEngine(unittest.TestCase):
         self.storage_patch.start()
         self.addCleanup(self.storage_patch.stop)
 
-        self.dataproc_patch = patch(
-            "google.cloud.dataproc_v1.WorkflowTemplateServiceClient"
-        )
-        self.dataproc_patch.start()
-        self.addCleanup(self.dataproc_patch.stop)
-
         self.engine = ApiExecutionEngine()
         self.engine.compute_helper = MagicMock()
 
@@ -206,10 +200,19 @@ class TestApiExecutionEngine(unittest.TestCase):
         args = MagicMock()
         args.project_id = "test-project"
         args.zone = "us-central1-a"
-        state = BuildState(disk_created=True, vm_created=True)
 
+        # Scenario 1: Both created -> Only VM delete is called (disk is auto-deleted with VM)
+        state = BuildState(disk_created=True, vm_created=True)
         self.engine._cleanup(args, "test-instance", "test-disk", state)
         self.engine.instances_client.delete.assert_called_once()
+        self.engine.disks_client.delete.assert_not_called()
+
+        # Scenario 2: Only disk created -> Only disk delete is called
+        self.engine.instances_client.delete.reset_mock()
+        self.engine.disks_client.delete.reset_mock()
+        state2 = BuildState(disk_created=True, vm_created=False)
+        self.engine._cleanup(args, "test-instance", "test-disk", state2)
+        self.engine.instances_client.delete.assert_not_called()
         self.engine.disks_client.delete.assert_called_once()
 
     def test_csv_metadata_parsing(self):
@@ -263,6 +266,33 @@ class TestApiExecutionEngine(unittest.TestCase):
         args = MagicMock()
         self.engine.run_smoke_test(args)
         mock_smoke_run.assert_called_once_with(args)
+
+    def test_invalid_accelerator_count(self):
+        args = MagicMock()
+        args.project_id = "test-project"
+        args.zone = "us-central1-a"
+        args.machine_type = "n1-standard-4"
+        args.service_account = "test-sa@project.iam.gserviceaccount.com"
+        args.subnetwork = None
+        args.network = "global/networks/default"
+        args.no_external_ip = False
+        args.accelerator = "type=nvidia-tesla-v100,count=two"
+        args.universe_domain = "googleapis.com"
+        args.dataproc_version = "2.1.115"
+        args.custom_sources_path = "gs://test-bucket/sources"
+        args.shutdown_timer_in_sec = 300
+        args.bucket_name = "test-bucket"
+        args.gcs_base_path = "run-id"
+        args.metadata = None
+
+        with patch("builtins.open", mock_open(read_data="echo test")):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.engine._create_vm(
+                    args, "test-instance", "test-disk", "us-central1"
+                )
+        self.assertIn(
+            "Invalid accelerator count: two. Must be an integer.", str(ctx.exception)
+        )
 
 
 if __name__ == "__main__":

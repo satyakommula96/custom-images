@@ -13,7 +13,6 @@
 # limitations under the License.
 """CLI-based implementation of the ExecutionEngine interface."""
 
-import os
 import subprocess
 from custom_image_utils import args_inferer
 from custom_image_utils import expiration_notifier
@@ -39,7 +38,9 @@ class CliExecutionEngine(ExecutionEngine):
             args.image_name,
             f"--project={args.project_id}",
         ]
-        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = subprocess.run(
+            command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
         if result.returncode == 0:
             raise RuntimeError("Image {} already exists.".format(args.image_name))
 

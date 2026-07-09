@@ -633,7 +633,12 @@ class ApiExecutionEngine(ExecutionEngine):
                     if k == "type":
                         acc_type = v
                     elif k == "count":
-                        acc_count = int(v)
+                        try:
+                            acc_count = int(v)
+                        except ValueError:
+                            raise RuntimeError(
+                                f"Invalid accelerator count: {v}. Must be an integer."
+                            )
             instance_resource.guest_accelerators = [
                 compute_v1.AcceleratorConfig(
                     accelerator_type=f"zones/{args.zone}/acceleratorTypes/{acc_type}",
