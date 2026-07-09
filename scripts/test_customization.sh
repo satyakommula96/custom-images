@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2026 Google LLC
+# Copyright 2026 Google LLC and contributors
 # Licensed under the Apache License, Version 2.0.
 #
 # Simple customization script for testing the Dataproc custom image build process.

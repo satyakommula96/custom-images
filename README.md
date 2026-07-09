@@ -187,13 +187,13 @@ cluster property values in the file.
 
 #### Create a custom image
 
-Create a custom image with name `custom-image-1-5-9` with Dataproc version
-`1.5.9-debian10`:
+Create a custom image with name `custom-image-2-2-0` with Dataproc version
+`2.2.0-debian12`:
 
 ```shell
 python generate_custom_image.py \
-    --image-name custom-image-1-5-9 \
-    --dataproc-version 1.5.9-debian10 \
+    --image-name custom-image-2-2-0 \
+    --dataproc-version 2.2.0-debian12 \
     --customization-script ~/custom-script.sh \
     --metadata 'key1=value1,key2=value2' \
     --zone us-central1-f \
@@ -204,8 +204,8 @@ python generate_custom_image.py \
 
 ```shell
 python generate_custom_image.py \
-    --image-name custom-image-1-5-9 \
-    --dataproc-version 1.5.9-debian10 \
+    --image-name custom-image-2-2-0 \
+    --dataproc-version 2.2.0-debian12 \
     --customization-script ~/custom-script.sh \
     --zone us-central1-f \
     --gcs-bucket gs://my-test-bucket \
@@ -230,8 +230,8 @@ To invoke the custom image generator using the API engine, pass `--execution-eng
 
 ```shell
 python generate_custom_image.py \
-    --image-name custom-image-1-5-9 \
-    --dataproc-version 1.5.9-debian10 \
+    --image-name custom-image-2-2-0 \
+    --dataproc-version 2.2.0-debian12 \
     --customization-script ~/custom-script.sh \
     --zone us-central1-f \
     --gcs-bucket gs://my-test-bucket \
