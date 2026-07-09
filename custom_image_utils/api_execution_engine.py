@@ -110,6 +110,7 @@ class ApiExecutionEngine(ExecutionEngine):
     """Execution engine that uses Google Cloud Python client libraries."""
 
     def __init__(self, credentials=None):
+        self.credentials = credentials
         self.compute_helper = ComputeOperationHelper(credentials=credentials)
         self.images_client = compute_v1.ImagesClient(credentials=credentials)
         self.disks_client = compute_v1.DisksClient(credentials=credentials)
@@ -118,6 +119,8 @@ class ApiExecutionEngine(ExecutionEngine):
 
     def _get_default_project(self):
         """Gets default project ID from authenticated credentials."""
+        if self.credentials and getattr(self.credentials, "project_id", None):
+            return self.credentials.project_id
         _, project_id = google.auth.default()
         if not project_id:
             raise RuntimeError(

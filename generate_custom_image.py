@@ -48,7 +48,13 @@ def get_execution_engine(args):
     if args.execution_engine == "api":
         from custom_image_utils.api_execution_engine import ApiExecutionEngine
 
-        return ApiExecutionEngine()
+        credentials = None
+        if args.oauth:
+            import google.auth
+
+            credentials, _ = google.auth.load_credentials_from_file(args.oauth)
+
+        return ApiExecutionEngine(credentials=credentials)
     else:
         from custom_image_utils.cli_execution_engine import CliExecutionEngine
 

@@ -51,6 +51,16 @@ class TestApiExecutionEngine(unittest.TestCase):
             project_id = self.engine._get_default_project()
             self.assertEqual(project_id, "test-project")
 
+    def test_get_default_project_with_credentials(self):
+        mock_creds = MagicMock()
+        mock_creds.project_id = "credentials-project"
+        self.engine.credentials = mock_creds
+        try:
+            project_id = self.engine._get_default_project()
+            self.assertEqual(project_id, "credentials-project")
+        finally:
+            self.engine.credentials = None
+
     def test_get_default_project_missing(self):
         with patch("google.auth.default", return_value=(None, None)):
             with self.assertRaises(RuntimeError):
