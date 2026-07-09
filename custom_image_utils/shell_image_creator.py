@@ -27,20 +27,20 @@ _LOG.setLevel(logging.WARN)
 
 
 def create(args):
-    """Creates a custom image with generated Shell script."""
+  """Creates a custom image with generated Shell script."""
 
-    # Generate Shell script.
-    _LOG.info("Generating Shell script...")
-    script = shell_script_generator.Generator().generate(vars(args))
-    _LOG.info("#" * 60)
-    _LOG.info(script)
-    _LOG.info("#" * 60)
-    _LOG.info("Successfully generated Shell script...")
+  # Generate Shell script.
+  _LOG.info("Generating Shell script...")
+  script = shell_script_generator.Generator().generate(vars(args))
+  _LOG.info("#" * 60)
+  _LOG.info(script)
+  _LOG.info("#" * 60)
+  _LOG.info("Successfully generated Shell script...")
 
-    # Run the script to build custom image.
-    if not args.dry_run:
-        _LOG.info("Creating custom image...")
-        shell_script_executor.run(script)
-        _LOG.info("Successfully created custom image...")
-    else:
-        _LOG.info("Skip creating custom image (dry run).")
+  # Run the script to build custom image.
+  if not args.dry_run:
+    _LOG.info("Creating custom image...")
+    shell_script_executor.run(script)
+    _LOG.info("Successfully created custom image...")
+  else:
+    _LOG.info("Skip creating custom image (dry run).")
