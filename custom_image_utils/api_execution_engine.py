@@ -54,16 +54,17 @@ _DEFAULT_RETRY = Retry(
 
 
 def _parse_dataproc_version(version_str):
-    """Parses dataproc version string like '2.1.115-debian11' to integer tuple (2, 1, 115) for sorting."""
+    """Parses dataproc version string like '2.1.115-debian11' or '2-1-115-debian11' to integer tuple (2, 1, 115) for sorting."""
     if not version_str:
         return 0, 0, 0
-    ver = version_str.split("-")[0]
+    # Normalize hyphens to dots to handle both formats
+    normalized = version_str.replace("-", ".")
     parts = []
-    for p in ver.split("."):
+    for p in normalized.split("."):
         try:
             parts.append(int(p))
         except ValueError:
-            parts.append(0)
+            break
     while len(parts) < 3:
         parts.append(0)
     return tuple(parts[:3])
@@ -108,12 +109,12 @@ def _has_build_signal(contents: str, signal: str) -> bool:
 class ApiExecutionEngine(ExecutionEngine):
     """Execution engine that uses Google Cloud Python client libraries."""
 
-    def __init__(self):
-        self.compute_helper = ComputeOperationHelper()
-        self.images_client = compute_v1.ImagesClient()
-        self.disks_client = compute_v1.DisksClient()
-        self.instances_client = compute_v1.InstancesClient()
-        self.storage_client = storage.Client()
+    def __init__(self, credentials=None):
+        self.compute_helper = ComputeOperationHelper(credentials=credentials)
+        self.images_client = compute_v1.ImagesClient(credentials=credentials)
+        self.disks_client = compute_v1.DisksClient(credentials=credentials)
+        self.instances_client = compute_v1.InstancesClient(credentials=credentials)
+        self.storage_client = storage.Client(credentials=credentials)
 
     def _get_default_project(self):
         """Gets default project ID from authenticated credentials."""
@@ -310,7 +311,7 @@ class ApiExecutionEngine(ExecutionEngine):
                 image_name=args.image_name,
                 timestamp=datetime.datetime.now().strftime("%Y%m%d-%H%M%S"),
             )
-        gcs_bucket_clean = args.gcs_bucket.replace("gs://", "")
+        gcs_bucket_clean = args.gcs_bucket.replace("gs://", "").strip("/")
         if "/" in gcs_bucket_clean:
             args.bucket_name, prefix_path = gcs_bucket_clean.split("/", 1)
             prefix_path = prefix_path.strip("/")

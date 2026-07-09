@@ -249,10 +249,12 @@ class TestApiExecutionEngine(unittest.TestCase):
         v1 = _parse_dataproc_version("2.1.115-debian11")
         v2 = _parse_dataproc_version("2.0.50-debian10")
         v3 = _parse_dataproc_version("2.1.99-debian11")
+        v4 = _parse_dataproc_version("2-1-115-debian11")
 
         self.assertEqual(v1, (2, 1, 115))
         self.assertEqual(v2, (2, 0, 50))
         self.assertEqual(v3, (2, 1, 99))
+        self.assertEqual(v4, (2, 1, 115))
         self.assertTrue(v1 > v3)
         self.assertTrue(v3 > v2)
 

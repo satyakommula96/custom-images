@@ -23,10 +23,10 @@ _LOG = logging.getLogger(__name__)
 class ComputeOperationHelper:
     """Helper to wait for Google Compute Engine long-running operations."""
 
-    def __init__(self):
-        self.zone_client = compute_v1.ZoneOperationsClient()
-        self.global_client = compute_v1.GlobalOperationsClient()
-        self.region_client = compute_v1.RegionOperationsClient()
+    def __init__(self, credentials=None):
+        self.zone_client = compute_v1.ZoneOperationsClient(credentials=credentials)
+        self.global_client = compute_v1.GlobalOperationsClient(credentials=credentials)
+        self.region_client = compute_v1.RegionOperationsClient(credentials=credentials)
 
     def wait_for_zone_operation(self, project, zone, operation_name, timeout_secs=600):
         """Waits for a zonal operation to complete."""
