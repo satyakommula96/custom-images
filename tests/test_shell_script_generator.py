@@ -262,6 +262,7 @@ class TestShellScriptGenerator(unittest.TestCase):
             "storage_location": "us-east1",
             "shutdown_timer_in_sec": 500,
             "base_image_family": "projects/my-dataproc-project/global/images/family/debian-10",
+            "trusted_cert": "",
         }
 
         script = shell_script_generator.Generator().generate(args)
