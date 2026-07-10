@@ -37,7 +37,8 @@ _expiration_notification_text = """\
 def _parse_date_time(timestamp_string):
   """Parses a timestamp string (RFC3339) to datetime format."""
 
-  return datetime.datetime.fromisoformat(timestamp_string.replace("Z", "+00:00"))
+  return datetime.datetime.strptime(timestamp_string[:-6],
+                                    "%Y-%m-%dT%H:%M:%S.%f")
 
 
 def _get_image_creation_timestamp(image_name, project_id):
