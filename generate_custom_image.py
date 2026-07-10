@@ -44,52 +44,52 @@ _LOG.setLevel(logging.WARN)
 
 
 def get_execution_engine(args):
-    """Instantiates the appropriate execution engine."""
-    if args.execution_engine == "api":
-        from custom_image_utils.api_execution_engine import ApiExecutionEngine
+  """Instantiates the appropriate execution engine."""
+  if args.execution_engine == "api":
+    from custom_image_utils.api_execution_engine import ApiExecutionEngine
 
-        credentials = None
-        if args.oauth:
-            import google.auth
+    credentials = None
+    if args.oauth:
+      import google.auth
 
-            credentials, _ = google.auth.load_credentials_from_file(args.oauth)
+      credentials, _ = google.auth.load_credentials_from_file(args.oauth)
 
-        return ApiExecutionEngine(credentials=credentials)
-    else:
-        from custom_image_utils.cli_execution_engine import CliExecutionEngine
+    return ApiExecutionEngine(credentials=credentials)
+  else:
+    from custom_image_utils.cli_execution_engine import CliExecutionEngine
 
-        return CliExecutionEngine()
+    return CliExecutionEngine()
 
 
 def main():
-    """Generates custom image."""
+  """Generates custom image."""
 
-    # Parse args
-    args = args_parser.parse_args(sys.argv[1:])
-    _LOG.info("Parsed args: {}".format(args))
+  # Parse args
+  args = args_parser.parse_args(sys.argv[1:])
+  _LOG.info("Parsed args: {}".format(args))
 
-    # Get selected execution engine
-    engine = get_execution_engine(args)
+  # Get selected execution engine
+  engine = get_execution_engine(args)
 
-    # Infer remaining arguments and check customization script path
-    is_gcs_script = args.customization_script.startswith("gs://")
-    if not is_gcs_script and not os.path.isfile(args.customization_script):
-        raise Exception(
-            "Invalid path to customization script: '{}' is not a file.".format(
-                args.customization_script
-            )
+  # Infer remaining arguments and check customization script path
+  is_gcs_script = args.customization_script.startswith("gs://")
+  if not is_gcs_script and not os.path.isfile(args.customization_script):
+    raise Exception(
+        "Invalid path to customization script: '{}' is not a file.".format(
+            args.customization_script
         )
+    )
 
-    engine.infer_args(args)
-    _LOG.info("Inferred args: {}".format(args))
+  engine.infer_args(args)
+  _LOG.info("Inferred args: {}".format(args))
 
-    # Run custom image creation workflow
-    engine.perform_sanity_checks(args)
-    engine.create_image(args)
-    engine.add_label(args)
-    engine.run_smoke_test(args)
-    engine.notify_expiration(args)
+  # Run custom image creation workflow
+  engine.perform_sanity_checks(args)
+  engine.create_image(args)
+  engine.add_label(args)
+  engine.run_smoke_test(args)
+  engine.notify_expiration(args)
 
 
 if __name__ == "__main__":
-    main()
+  main()
