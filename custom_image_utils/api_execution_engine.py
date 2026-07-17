@@ -286,6 +286,8 @@ class ApiExecutionEngine(ExecutionEngine):
 
         _LOG.info("Returned Dataproc base image: %s", args.dataproc_base_image)
         _LOG.info("Returned Dataproc version   : %s", args.dataproc_version)
+        print(f"Returned Dataproc base image: {args.dataproc_base_image}")
+        print(f"Returned Dataproc version   : {args.dataproc_version}")
 
     def perform_sanity_checks(self, args):
         """Checks if the target image already exists using Images API client."""
